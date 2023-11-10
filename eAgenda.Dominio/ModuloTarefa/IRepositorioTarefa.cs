@@ -1,10 +1,11 @@
 ﻿using eAgenda.Dominio.Compartilhado;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace eAgenda.Dominio.ModuloTarefa
 {
     public interface IRepositorioTarefa : IRepositorio<Tarefa>
     {
-        List<Tarefa> SelecionarTodos(StatusTarefaEnum status);
+        public Task<List<Tarefa>> SelecionarTodosAsync(StatusTarefaEnum status);
     }
 }

@@ -1,4 +1,6 @@
-﻿namespace eAgenda.WebApi.Config.AutomapperConfig
+﻿using eAgenda.WebApi.Config.AutoMapperConfig;
+
+namespace eAgenda.WebApi.Config.AutomapperConfig
 {
     public static class AutoMapperConfigExtension
     {
@@ -8,6 +10,9 @@
             {
                 opt.AddProfile<ContatoProfile>();
                 opt.AddProfile<CompromissoProfile>();
+                opt.AddProfile<CategoriaProfile>();
+                opt.AddProfile<DespesaProfile>();
+                opt.AddProfile<TarefaProfile>();
             });
         }
     }

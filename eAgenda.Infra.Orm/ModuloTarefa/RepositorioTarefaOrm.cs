@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 
 namespace eAgenda.Infra.Orm.ModuloTarefa
 {
@@ -22,18 +23,18 @@ namespace eAgenda.Infra.Orm.ModuloTarefa
                 .SingleOrDefault(x => x.Id == id);
         }
 
-        public List<Tarefa> SelecionarTodos(StatusTarefaEnum status)
+        async Task<List<Tarefa>> IRepositorioTarefa.SelecionarTodosAsync(StatusTarefaEnum status)
         {
             if (status == StatusTarefaEnum.Concluidas)
-                return registros                    
-                    .Where(x => x.PercentualConcluido == 100).ToList();
+                return await registros
+                    .Where(x => x.PercentualConcluido == 100).ToListAsync();
 
             else if (status == StatusTarefaEnum.Pendentes)
-                return registros                    
-                    .Where(x => x.PercentualConcluido < 100).ToList();
+                return await registros
+                    .Where(x => x.PercentualConcluido < 100).ToListAsync();
 
             else
-                return registros.ToList();
+                return await registros.ToListAsync();
         }
     }
 }

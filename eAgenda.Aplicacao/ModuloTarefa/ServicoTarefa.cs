@@ -1,9 +1,11 @@
 ﻿using eAgenda.Dominio;
+using eAgenda.Dominio.ModuloContato;
 using eAgenda.Dominio.ModuloTarefa;
 using FluentResults;
 using Serilog;
 using System;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace eAgenda.Aplicacao.ModuloTarefa
 {
@@ -19,70 +21,37 @@ namespace eAgenda.Aplicacao.ModuloTarefa
             this.contextoPersistencia = contexto;
         }
 
-        public Result<Tarefa> Inserir(Tarefa tarefa)
+        public async Task<Result<Tarefa>> InserirAsync(Tarefa tarefa)
         {
-            Log.Logger.Debug("Tentando inserir tarefa... {@t}", tarefa);
-
             Result resultado = Validar(tarefa);
 
             if (resultado.IsFailed)
                 return Result.Fail(resultado.Errors);
 
-            try
-            {
-                repositorioTarefa.Inserir(tarefa);
+                await repositorioTarefa.InserirAsync(tarefa);
 
-                contextoPersistencia.GravarDados();
-
-                Log.Logger.Information("Tarefa {TarefaId} inserida com sucesso", tarefa.Id);
+                await contextoPersistencia.GravarDadosAsync();
 
                 return Result.Ok(tarefa);
-            }
-            catch (Exception ex)
-            {
-                contextoPersistencia.DesfazerAlteracoes();
-
-                string msgErro = "Falha no sistema ao tentar inserir a Tarefa";
-
-                Log.Logger.Error(ex, msgErro + " {TarefaId} ", tarefa.Id);
-
-                return Result.Fail(msgErro);
-            }
         }
 
-        public Result<Tarefa> Editar(Tarefa tarefa)
+        public async Task<Result<Tarefa>> EditarAsync(Tarefa tarefa)
         {
-            Log.Logger.Debug("Tentando editar tarefa... {@t}", tarefa);
-
             var resultado = Validar(tarefa);
+
             if (resultado.IsFailed)
                 return Result.Fail(resultado.Errors);
 
-            try
-            {
                 tarefa.CalcularPercentualConcluido();
 
                 repositorioTarefa.Editar(tarefa);
 
-                contextoPersistencia.GravarDados();
-
-                Log.Logger.Information("Tarefa {TarefaId} editada com sucesso", tarefa.Id);
-            }
-            catch (Exception ex)
-            {
-                contextoPersistencia.DesfazerAlteracoes();
-
-                string msgErro = "Falha no sistema ao tentar editar a Tarefa";
-
-                Log.Logger.Error(ex, msgErro + " {TarefaId}", tarefa.Id);
-
-                return Result.Fail(msgErro);
-            }
+                await contextoPersistencia.GravarDadosAsync();
 
             return Result.Ok(tarefa);
         }
 
-        public Result<Tarefa> AtualizarItens(Tarefa tarefa,
+        public Task<Result<Tarefa>> AtualizarItens(Tarefa tarefa,
             List<ItemTarefa> itensConcluidos, List<ItemTarefa> itensPendentes)
         {
             foreach (var item in itensConcluidos)
@@ -91,94 +60,47 @@ namespace eAgenda.Aplicacao.ModuloTarefa
             foreach (var item in itensPendentes)
                 tarefa.MarcarPendente(item.Id);
 
-            return Editar(tarefa);
+            return EditarAsync(tarefa);
         }
 
-        public Result Excluir(Guid id)
+        public async Task<Result> ExcluirAsync(Guid id)
         {
-            var tarefaResult = SelecionarPorId(id);
+            var tarefaResult = await SelecionarPorIdAsync(id);
 
             if (tarefaResult.IsSuccess)
-                return Excluir(tarefaResult.Value);
+                return await ExcluirAsync(tarefaResult.Value);
 
             return Result.Fail(tarefaResult.Errors);
         }
 
-        public Result Excluir(Tarefa tarefa)
+        public async Task<Result> ExcluirAsync(Tarefa tarefa)
         {
-            Log.Logger.Debug("Tentando excluir tarefa... {@t}", tarefa);
-
-            try
-            {
                 repositorioTarefa.Excluir(tarefa);
 
-                contextoPersistencia.GravarDados();
-
-                Log.Logger.Information("Tarefa {TarefaId} editada com sucesso", tarefa.Id);
+                await contextoPersistencia.GravarDadosAsync();
 
                 return Result.Ok();
-            }
-            catch (Exception ex)
-            {
-                contextoPersistencia.DesfazerAlteracoes();
-
-                string msgErro = "Falha no sistema ao tentar excluir a Tarefa";
-
-                Log.Logger.Error(ex, msgErro + " {TarefaId}", tarefa.Id);
-
-                return Result.Fail(msgErro);
-            }
         }
 
-        public Result<List<Tarefa>> SelecionarTodos(StatusTarefaEnum statusSelecionado)
+        public async Task<Result<List<Tarefa>>> SelecionarTodosAsync(StatusTarefaEnum status)
         {
-            Log.Logger.Debug("Tentando selecionar tarefas...");
+            var tarefas = await repositorioTarefa.SelecionarTodosAsync(status);
 
-            try
-            {
-                var tarefas = repositorioTarefa.SelecionarTodos(statusSelecionado);
-
-                Log.Logger.Information("Tarefas selecionadas com sucesso");
-
-                return Result.Ok(tarefas);
-            }
-            catch (Exception ex)
-            {
-                string msgErro = "Falha no sistema ao tentar selecionar todas as Tarefas";
-
-                Log.Logger.Error(ex, msgErro);
-
-                return Result.Fail(msgErro);
-            }
+            return Result.Ok(tarefas);
         }
 
-        public Result<Tarefa> SelecionarPorId(Guid id)
+        public async Task<Result<Tarefa>> SelecionarPorIdAsync(Guid id)
         {
-            Log.Logger.Debug("Tentando selecionar tarefa {TarefaId}...", id);
+            var tarefa = await repositorioTarefa.SelecionarPorIdAsync(id);
 
-            try
+            if (tarefa == null)
             {
-                var tarefa = repositorioTarefa.SelecionarPorId(id);
+                Log.Logger.Warning($"Tarefa {id} não encontrada", id);
 
-                if (tarefa == null)
-                {
-                    Log.Logger.Warning("Tarefa {TarefaId} não encontrada", id);
-
-                    return Result.Fail($"Tarefa {id} não encontrada");
-                }
-
-                Log.Logger.Information("Tarefa {TarefaId} selecionada com sucesso", id);
-
-                return Result.Ok(tarefa);
+                return Result.Fail($"Tarefa {id} não encontrada");
             }
-            catch (Exception ex)
-            {
-                string msgErro = "Falha no sistema ao tentar selecionar o Tarefa";
 
-                Log.Logger.Error(ex, msgErro + " {TarefaId}", id);
-
-                return Result.Fail(msgErro);
-            }
+            return Result.Ok(tarefa);
         }
     }
 }
