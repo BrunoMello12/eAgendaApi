@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 
 namespace eAgenda.Infra.Orm.ModuloDespesa
 {
@@ -14,18 +15,18 @@ namespace eAgenda.Infra.Orm.ModuloDespesa
         {
         }
 
-        public List<Despesa> SelecionarDespesasUltimos30Dias(DateTime dataAtual)
+        public Task<List<Despesa>> SelecionarDespesasUltimos30Dias(DateTime dataAtual)
         {
             return registros
                .Where(x => x.Data >= dataAtual.AddDays(-30))               
-               .ToList();
+               .ToListAsync();
         }
 
-        public List<Despesa> SelecionarDespesasAntigas(DateTime dataAtual)
+        public async Task<List<Despesa>> SelecionarDespesasAntigas(DateTime dataAtual)
         {
-            return registros
+            return await registros
                .Where(x => x.Data <= dataAtual.AddDays(-30))               
-               .ToList();
+               .ToListAsync();
         }
 
         public override Despesa SelecionarPorId(Guid id)
