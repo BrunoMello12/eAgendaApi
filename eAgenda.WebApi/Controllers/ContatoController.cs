@@ -24,7 +24,7 @@ namespace eAgenda.WebApi.Controllers
         [HttpGet]
         [ProducesResponseType(typeof(ListarContatoViewModel), 200)]
         [ProducesResponseType(typeof(string[]), 500)]
-        public async Task<IActionResult> SeleciontarTodos(StatusFavoritoEnum statusFavorito)
+        public async Task<IActionResult> SelecionarTodos(StatusFavoritoEnum statusFavorito)
         {
             var contatoResult = await servicoContato.SelecionarTodosAsync(statusFavorito);
 
@@ -37,7 +37,7 @@ namespace eAgenda.WebApi.Controllers
         [ProducesResponseType(typeof(VisualizarContatoViewModel), 200)]
         [ProducesResponseType(typeof(string[]), 404)]
         [ProducesResponseType(typeof(string[]), 500)]
-        public async Task<IActionResult> SeleciontarPorId(Guid id)
+        public async Task<IActionResult> SelecionarPorId(Guid id)
         {
             var contatoResult = await servicoContato.SelecionarPorIdAsync(id);
 
@@ -97,8 +97,24 @@ namespace eAgenda.WebApi.Controllers
 
             return ProcessarResultado(contatoResult);
         }
+
+        [HttpPut("favoritos/{id}")]
+        [ProducesResponseType(typeof(string[]), 404)]
+        [ProducesResponseType(typeof(string[]), 500)]
+        public async Task<IActionResult> Favoritar(Guid id)
+        {
+            var resultadoSelecao = await servicoContato.SelecionarPorIdAsync(id);
+
+            if (resultadoSelecao.IsFailed)
+                return NotFound(resultadoSelecao.Errors);
+
+            var contatoResult = await servicoContato.FavoritarAsync(resultadoSelecao.Value);
+
+            return ProcessarResultado(contatoResult.ToResult());
+        }
     }
 }
+
 
         
     

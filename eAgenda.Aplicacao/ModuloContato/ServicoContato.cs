@@ -67,11 +67,7 @@ namespace eAgenda.Aplicacao.ModuloContato
 
             return Result.Ok();
         }
-
-        //Task<Result<List<Contato>>>
-        //  -> List<>   = Retorna vários contatos de maneira fácil a manipulação
-        //  -> Result<> = Numa estrutura que facilita a resposta de sucesso ou falha 
-        //  -> Task<>   = De maneira assíncrona        
+        
         public async Task<Result<List<Contato>>> SelecionarTodosAsync(StatusFavoritoEnum statusFavorito)
         {
             var contatos = await repositorioContato.SelecionarTodosAsync(statusFavorito);

@@ -1,9 +1,11 @@
 ﻿using eAgenda.Dominio;
 using eAgenda.Dominio.ModuloCompromisso;
+using eAgenda.Dominio.ModuloContato;
 using FluentResults;
 using Serilog;
 using System;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace eAgenda.Aplicacao.ModuloCompromisso
 {
@@ -19,153 +21,52 @@ namespace eAgenda.Aplicacao.ModuloCompromisso
             this.contextoPersistencia = contextoPersistencia;
         }
 
-        public Result<Compromisso> Inserir(Compromisso compromisso)
+        public async Task<Result<Compromisso>> InserirAsync(Compromisso compromisso)
         {
-            Log.Logger.Debug("Tentando inserir compromisso... {@c}", compromisso);
-
             Result resultado = Validar(compromisso);
 
             if (resultado.IsFailed)
                 return Result.Fail(resultado.Errors);
 
-            try
-            {
-                repositorioCompromisso.Inserir(compromisso);
+           
+                await repositorioCompromisso.InserirAsync(compromisso);
 
-                contextoPersistencia.GravarDados();
-
-                Log.Logger.Information("Compromisso {CompromissoId} inserido com sucesso", compromisso.Id);
+                await contextoPersistencia.GravarDadosAsync();
 
                 return Result.Ok(compromisso);
-            }
-            catch (Exception ex)
-            {
-                contextoPersistencia.DesfazerAlteracoes();
-
-                string msgErro = "Falha no sistema ao tentar inserir o Compromisso";
-
-                Log.Logger.Error(ex, msgErro + " {CompromissoId} ", compromisso.Id);
-
-                return Result.Fail(msgErro);
-            }
         }
 
-        public Result<Compromisso> Editar(Compromisso compromisso)
+        public async Task<Result<Compromisso>> EditarAsync(Compromisso compromisso)
         {
-            Log.Logger.Debug("Tentando editar compromisso... {@c}", compromisso);
-
             var resultado = Validar(compromisso);
 
             if (resultado.IsFailed)
                 return Result.Fail(resultado.Errors);
 
-            try
-            {
                 repositorioCompromisso.Editar(compromisso);
 
-                contextoPersistencia.GravarDados();
+                await contextoPersistencia.GravarDadosAsync();
 
-                Log.Logger.Information("Compromisso {CompromissoId} editado com sucesso", compromisso.Id);
-            }
-            catch (Exception ex)
-            {
-                contextoPersistencia.DesfazerAlteracoes();
-
-                string msgErro = "Falha no sistema ao tentar editar o Compromisso";
-
-                Log.Logger.Error(ex, msgErro + " {CompromissoId}", compromisso.Id);
-
-                return Result.Fail(msgErro);
-            }
-
-            return Result.Ok(compromisso);
+                return Result.Ok(compromisso);
         }
 
-        public Result Excluir(Compromisso compromisso)
+        public async Task<Result> ExcluirAsync(Guid id)
         {
-            Log.Logger.Debug("Tentando excluir compromisso... {@c}", compromisso);
-
-            try
-            {
-                repositorioCompromisso.Excluir(compromisso);
-
-                contextoPersistencia.GravarDados();
-
-                Log.Logger.Information("Compromisso {CompromissoId} editado com sucesso", compromisso.Id);
-
-                return Result.Ok();
-            }
-            catch (Exception ex)
-            {
-                contextoPersistencia.DesfazerAlteracoes();
-
-                string msgErro = "Falha no sistema ao tentar excluir o Compromisso";
-
-                Log.Logger.Error(ex, msgErro + " {CompromissoId}", compromisso.Id);
-
-                return Result.Fail(msgErro);
-            }
-        }
-
-        public Result Excluir(Guid id)
-        {
-            var compromissoResult = SelecionarPorId(id);
+            var compromissoResult = await SelecionarPorIdAsync(id);
 
             if (compromissoResult.IsSuccess)
-                return Excluir(compromissoResult.Value);
+                return await ExcluirAsync(compromissoResult.Value);
 
             return Result.Fail(compromissoResult.Errors);
         }
 
-        public Result<List<Compromisso>> SelecionarTodos()
+        public async Task<Result> ExcluirAsync(Compromisso compromisso)
         {
-            Log.Logger.Debug("Tentando selecionar compromissos...");
+            repositorioCompromisso.Excluir(compromisso);
 
-            try
-            {
-                var compromissos = repositorioCompromisso.SelecionarTodos();
+            await contextoPersistencia.GravarDadosAsync();
 
-                Log.Logger.Information("Compromissos selecionados com sucesso");
-
-                return Result.Ok(compromissos);
-            }
-            catch (Exception ex)
-            {
-                string msgErro = "Falha no sistema ao tentar selecionar todos os Compromissos";
-
-                Log.Logger.Error(ex, msgErro);
-
-                return Result.Fail(msgErro);
-            }
-        }
-
-        public Result<Compromisso> SelecionarPorId(Guid id)
-        {
-            Log.Logger.Debug("Tentando selecionar compromisso {CompromissoId}...", id);
-
-            try
-            {
-                var compromisso = repositorioCompromisso.SelecionarPorId(id);
-
-                if (compromisso == null)
-                {
-                    Log.Logger.Warning("Compromisso {CompromissoId} não encontrado", id);
-
-                    return Result.Fail("Compromisso não encontrado");
-                }
-
-                Log.Logger.Information("Compromisso {CompromissoId} selecionado com sucesso", id);
-
-                return Result.Ok(compromisso);
-            }
-            catch (Exception ex)
-            {
-                string msgErro = "Falha no sistema ao tentar selecionar o Compromisso";
-
-                Log.Logger.Error(ex, msgErro + " {CompromissoId}", id);
-
-                return Result.Fail(msgErro);
-            }
+            return Result.Ok();
         }
 
 
@@ -177,6 +78,27 @@ namespace eAgenda.Aplicacao.ModuloCompromisso
         public Result<List<Compromisso>> SelecionarCompromissosFuturos(DateTime dataInicial, DateTime dataFinal)
         {
             return repositorioCompromisso.SelecionarCompromissosFuturos(dataInicial, dataFinal);
+        }
+
+        public async Task<Result<List<Compromisso>>> SelecionarTodosAsync()
+        {
+            var compromissos = await repositorioCompromisso.SelecionarTodosAsync();
+
+            return Result.Ok(compromissos);
+        }
+
+        public async Task<Result<Compromisso>> SelecionarPorIdAsync(Guid id)
+        {
+            var compromisso = await repositorioCompromisso.SelecionarPorIdAsync(id);
+
+            if (compromisso == null)
+            {
+                Log.Logger.Warning("Compromisso {CompromissoId} não encontrado", id);
+
+                return Result.Fail($"Compromisso {id} não encontrado");
+            }
+
+            return Result.Ok(compromisso);
         }
     }
 }
